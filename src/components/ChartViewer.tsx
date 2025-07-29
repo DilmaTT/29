@@ -174,26 +174,35 @@ export const ChartViewer = ({ isMobileMode = false, chart, allRanges, onBackToCh
               })
             }}
           >
-            {chart.buttons.map((button) => (
-              <Button
-                key={button.id}
-                style={{
-                  backgroundColor: button.color,
-                  position: 'absolute',
-                  left: button.x,
-                  top: button.y,
-                  width: button.width,
-                  height: button.height,
-                }}
-                className={cn(
-                  "flex items-center justify-center rounded-md shadow-md text-white font-semibold z-20",
-                  button.type !== 'label' && "cursor-pointer hover:opacity-90 transition-opacity"
-                )}
-                onClick={() => handleButtonClick(button)}
-              >
-                {button.name}
-              </Button>
-            ))}
+            {chart.buttons.map((button) => {
+              const finalStyle: React.CSSProperties = {
+                backgroundColor: button.color,
+                position: 'absolute',
+                left: button.x,
+                top: button.y,
+                width: Math.max(5, button.width || 0),
+                height: Math.max(5, button.height || 0),
+                color: (button.isFontAdaptive === false && button.fontColor) ? button.fontColor : 'white',
+              };
+
+              if (button.isFontAdaptive === false && button.fontSize) {
+                finalStyle.fontSize = `${button.fontSize}px`;
+              }
+
+              return (
+                <div
+                  key={button.id}
+                  style={finalStyle}
+                  className={cn(
+                    "flex items-center justify-center rounded-md shadow-md font-semibold z-20",
+                    button.type !== 'label' && "cursor-pointer hover:opacity-90 transition-opacity"
+                  )}
+                  onClick={() => handleButtonClick(button)}
+                >
+                  {button.name}
+                </div>
+              );
+            })}
             {chart.buttons.length === 0 && (
               <p className="text-muted-foreground z-10">В этом чарте нет кнопок.</p>
             )}

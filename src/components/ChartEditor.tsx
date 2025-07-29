@@ -555,8 +555,8 @@ export const ChartEditor = ({ isMobileMode = false, chart, onBackToCharts, onSav
             position: 'absolute',
             left: button.x,
             top: button.y,
-            width: button.width,
-            height: button.height,
+            width: Math.max(MIN_BUTTON_DIMENSION, button.width || 0),
+            height: Math.max(MIN_BUTTON_DIMENSION, button.height || 0),
             zIndex: activeButtonId === button.id ? 100 : 1,
             color: (button.isFontAdaptive === false && button.fontColor) ? button.fontColor : 'white',
         };
@@ -746,7 +746,10 @@ export const ChartEditor = ({ isMobileMode = false, chart, onBackToCharts, onSav
                   id="buttonWidth"
                   type="number"
                   value={editingButton?.width || 0}
-                  onChange={(e) => setEditingButton(prev => prev ? { ...prev, width: parseInt(e.target.value) || 0 } : null)}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    setEditingButton(prev => prev ? { ...prev, width: isNaN(value) ? 0 : value } : null);
+                  }}
                   className="col-span-3"
                 />
               </div>
@@ -758,7 +761,10 @@ export const ChartEditor = ({ isMobileMode = false, chart, onBackToCharts, onSav
                   id="buttonHeight"
                   type="number"
                   value={editingButton?.height || 0}
-                  onChange={(e) => setEditingButton(prev => prev ? { ...prev, height: parseInt(e.target.value) || 0 } : null)}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    setEditingButton(prev => prev ? { ...prev, height: isNaN(value) ? 0 : value } : null);
+                  }}
                   className="col-span-3"
                 />
               </div>
