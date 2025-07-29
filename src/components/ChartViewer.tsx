@@ -6,8 +6,33 @@ import { Range, ActionButton as ActionButtonType } from "@/contexts/RangeContext
 import { PokerMatrix } from "@/components/PokerMatrix";
 import { useRangeContext } from "@/contexts/RangeContext";
 
+// Helper function to get the color for a simple action
+const getActionColor = (actionId: string, allButtons: ActionButtonType[]): string => {
+  if (actionId === 'fold') return '#6b7280';
+  const button = allButtons.find(b => b.id === actionId);
+  if (button && button.type === 'simple') {
+    return button.color;
+  }
+  return '#ffffff'; // Fallback color
+};
+
+// Helper function to get the style for any action button (simple or weighted)
+const getActionButtonStyle = (button: ActionButtonType, allButtons: ActionButtonType[]) => {
+  if (button.type === 'simple') {
+    return { backgroundColor: button.color };
+  }
+  if (button.type === 'weighted') {
+    const color1 = getActionColor(button.action1Id, allButtons);
+    const color2 = getActionColor(button.action2Id, allButtons);
+    return {
+      background: `linear-gradient(to right, ${color1} ${button.weight}%, ${color2} ${button.weight}%)`,
+    };
+  }
+  return {};
+};
+
 // Legend Component
-const Legend = ({ usedActions }: { usedActions: ActionButtonType[] }) => {
+const Legend = ({ usedActions, allActionButtons }: { usedActions: ActionButtonType[], allActionButtons: ActionButtonType[] }) => {
   if (usedActions.length === 0) return null;
 
   return (
@@ -16,7 +41,7 @@ const Legend = ({ usedActions }: { usedActions: ActionButtonType[] }) => {
         <div key={action.id} className="flex items-center gap-2">
           <div
             className="w-4 h-4 rounded-sm border"
-            style={{ backgroundColor: action.type === 'simple' ? action.color : 'transparent' }}
+            style={getActionButtonStyle(action, allActionButtons)}
           />
           <span className="text-sm font-medium">{action.name}</span>
         </div>
@@ -33,17 +58,20 @@ interface ChartViewerProps {
   onBackToCharts: () => void;
 }
 
-const CustomDialog = ({ isOpen, onClose, children }) => {
+const CustomDialog = ({ isOpen, onClose, children, isMobileMode = false }) => {
     if (!isOpen) return null;
 
     // Use a container that takes up the full screen to center the content
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4" 
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" 
             onClick={onClose}
         >
             <div 
-                className="bg-background p-4 rounded-lg shadow-2xl" 
+                className={cn(
+                    "bg-background p-4 rounded-lg shadow-2xl",
+                    isMobileMode ? "w-full" : "w-auto"
+                )}
                 onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the content
             >
                 {children}
@@ -210,7 +238,7 @@ export const ChartViewer = ({ isMobileMode = false, chart, allRanges, onBackToCh
         </div>
       </div>
 
-      <CustomDialog isOpen={showMatrixDialog} onClose={handleCloseDialog}>
+      <CustomDialog isOpen={showMatrixDialog} onClose={handleCloseDialog} isMobileMode={isMobileMode}>
           {displayedRange && (
             <div>
               <PokerMatrix
@@ -221,7 +249,7 @@ export const ChartViewer = ({ isMobileMode = false, chart, allRanges, onBackToCh
                 readOnly={true}
                 isBackgroundMode={false}
               />
-              {activeButton?.showLegend && <Legend usedActions={usedActions} />}
+              {activeButton?.showLegend && <Legend usedActions={usedActions} allActionButtons={actionButtons} />}
             </div>
           )}
       </CustomDialog>
