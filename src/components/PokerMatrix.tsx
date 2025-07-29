@@ -34,7 +34,8 @@ interface PokerMatrixProps {
   activeAction: string;
   actionButtons: ActionButton[];
   readOnly?: boolean;
-  isBackgroundMode?: boolean; // New prop
+  isBackgroundMode?: boolean;
+  sizeVariant?: 'default' | 'editorPreview'; // New prop for sizing
 }
 
 const getActionColor = (actionId: string, buttons: ActionButton[]): string => {
@@ -49,12 +50,10 @@ const getActionColor = (actionId: string, buttons: ActionButton[]): string => {
   return '#ffffff'; 
 };
 
-export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionButtons, readOnly = false, isBackgroundMode = false }: PokerMatrixProps) => {
+export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionButtons, readOnly = false, isBackgroundMode = false, sizeVariant = 'default' }: PokerMatrixProps) => {
   const isMobile = useIsMobile();
   const [isDragging, setIsDragging] = useState(false);
   const [dragMode, setDragMode] = useState<'select' | 'deselect' | null>(null);
-  const lastHandEnteredRef = useRef<string | null>(null);
-  const wasDragged = useRef(false);
   const lastHandSelectedDuringDrag = useRef<string | null>(null);
   // Initialize zoomLevel to 0.85 (15% reduction) for desktop, 1 for mobile
   const [zoomLevel, setZoomLevel] = useState<number>(isMobile ? 1 : 0.85);
@@ -70,7 +69,6 @@ export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionB
   const handleDragEnd = () => {
     setIsDragging(false);
     setDragMode(null);
-    lastHandEnteredRef.current = null;
   };
 
   useEffect(() => {
@@ -87,21 +85,23 @@ export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionB
 
   const handlePointerDown = (hand: string) => {
     if (readOnly || isBackgroundMode) return;
-    wasDragged.current = false;
+    
     lastHandSelectedDuringDrag.current = null;
     setIsDragging(true);
-    lastHandEnteredRef.current = hand;
 
     const currentHandAction = selectedHands[hand];
     const mode = currentHandAction === activeAction ? 'deselect' : 'select';
     setDragMode(mode);
+
+    // Apply action immediately on pointer down to select the first cell
+    onHandSelect(hand, mode);
+    lastHandSelectedDuringDrag.current = hand;
   };
 
   const handlePointerEnter = (hand: string) => {
     if (readOnly || isBackgroundMode || !isDragging || !dragMode) return;
     
-    wasDragged.current = true;
-    
+    // Select subsequent cells only if they are different from the last one
     if (lastHandSelectedDuringDrag.current !== hand) {
       onHandSelect(hand, dragMode);
       lastHandSelectedDuringDrag.current = hand;
@@ -117,18 +117,8 @@ export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionB
 
     if (element instanceof HTMLElement && element.dataset.hand) {
       const hand = element.dataset.hand;
-      wasDragged.current = true; // Mark as dragged on any move
       handlePointerEnter(hand);
     }
-  };
-
-  const handleClick = (hand: string) => {
-    if (readOnly || isBackgroundMode) return;
-    if (wasDragged.current) return; // Don't fire click after a drag
-
-    const currentHandAction = selectedHands[hand];
-    const mode = currentHandAction === activeAction ? 'deselect' : 'select';
-    onHandSelect(hand, mode);
   };
 
   const getHandStyle = (hand: string) => {
@@ -167,10 +157,16 @@ export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionB
     return '';
   };
 
-  // Adjust parentContainerClasses based on isBackgroundMode
+  // Adjust parentContainerClasses based on isBackgroundMode and sizeVariant
   const parentContainerClasses = cn(
     "space-y-4",
-    isBackgroundMode ? "w-full h-full flex items-center justify-center" : (isMobile ? "w-full !px-0" : "w-[120%]")
+    isBackgroundMode 
+      ? "w-full h-full flex items-center justify-center" 
+      : isMobile 
+        ? "w-full !px-0" 
+        : sizeVariant === 'editorPreview' 
+          ? "w-full" // Fit within dialog for editor preview
+          : "w-[120%]" // Original size for viewer
   );
   
   // Adjust gridClasses for background mode to ensure it scales within its parent
@@ -204,7 +200,6 @@ export const PokerMatrix = ({ selectedHands, onHandSelect, activeAction, actionB
               getHandColorClass(hand)
             )}
             style={getHandStyle(hand)}
-            onClick={() => handleClick(hand)}
             onMouseDown={() => handlePointerDown(hand)}
             onMouseEnter={() => handlePointerEnter(hand)}
             onTouchStart={() => handlePointerDown(hand)}

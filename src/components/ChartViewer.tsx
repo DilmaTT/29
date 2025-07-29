@@ -32,7 +32,15 @@ const getActionButtonStyle = (button: ActionButtonType, allButtons: ActionButton
 };
 
 // Legend Component
-const Legend = ({ usedActions, allActionButtons }: { usedActions: ActionButtonType[], allActionButtons: ActionButtonType[] }) => {
+const Legend = ({
+  usedActions,
+  allActionButtons,
+  legendOverrides,
+}: {
+  usedActions: ActionButtonType[];
+  allActionButtons: ActionButtonType[];
+  legendOverrides?: Record<string, string>;
+}) => {
   if (usedActions.length === 0) return null;
 
   return (
@@ -43,7 +51,9 @@ const Legend = ({ usedActions, allActionButtons }: { usedActions: ActionButtonTy
             className="w-4 h-4 rounded-sm border"
             style={getActionButtonStyle(action, allActionButtons)}
           />
-          <span className="text-sm font-medium">{action.name}</span>
+          <span className="text-sm font-medium">
+            {legendOverrides?.[action.id] || action.name}
+          </span>
         </div>
       ))}
     </div>
@@ -61,18 +71,20 @@ interface ChartViewerProps {
 const CustomDialog = ({ isOpen, onClose, children, isMobileMode = false }) => {
     if (!isOpen) return null;
 
-    // Use a container that takes up the full screen to center the content
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" 
+            className={cn(
+                "fixed inset-0 z-50 flex items-center justify-center bg-black/50",
+                isMobileMode ? "p-2" : "p-4"
+            )} 
             onClick={onClose}
         >
             <div 
                 className={cn(
-                    "bg-background p-4 rounded-lg shadow-2xl",
-                    isMobileMode ? "w-full" : "w-auto"
+                    "bg-background rounded-lg shadow-2xl",
+                    isMobileMode ? "w-full p-2" : "w-auto p-4"
                 )}
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the content
+                onClick={(e) => e.stopPropagation()}
             >
                 {children}
             </div>
@@ -202,7 +214,7 @@ export const ChartViewer = ({ isMobileMode = false, chart, allRanges, onBackToCh
               })
             }}
           >
-            {chart.buttons.map((button) => {
+            {(!isMobileMode || !showMatrixDialog) && chart.buttons.map((button) => {
               const finalStyle: React.CSSProperties = {
                 backgroundColor: button.color,
                 position: 'absolute',
@@ -231,7 +243,7 @@ export const ChartViewer = ({ isMobileMode = false, chart, allRanges, onBackToCh
                 </div>
               );
             })}
-            {chart.buttons.length === 0 && (
+            {chart.buttons.length === 0 && (!isMobileMode || !showMatrixDialog) && (
               <p className="text-muted-foreground z-10">В этом чарте нет кнопок.</p>
             )}
           </div>
@@ -249,7 +261,13 @@ export const ChartViewer = ({ isMobileMode = false, chart, allRanges, onBackToCh
                 readOnly={true}
                 isBackgroundMode={false}
               />
-              {activeButton?.showLegend && <Legend usedActions={usedActions} allActionButtons={actionButtons} />}
+              {activeButton?.showLegend && (
+                <Legend
+                  usedActions={usedActions}
+                  allActionButtons={actionButtons}
+                  legendOverrides={activeButton?.legendOverrides}
+                />
+              )}
             </div>
           )}
       </CustomDialog>
